@@ -1,0 +1,76 @@
+name: CI/CD for LINE Order Query System
+
+on:
+  push:
+    branches: [main, production]
+  pull_request:
+    branches: [main, production]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      DB_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      SHOPIFY_STORE_DOMAIN: dummy.myshopify.com
+      SHOPIFY_ACCESS_TOKEN: dummy_token
+      LINE_CHANNEL_ACCESS_TOKEN: dummy_token
+      LINE_CHANNEL_SECRET: dummy_secret
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🧪 Run unit & integration tests
+        run: npm test
+
+      - name: 📊 Collect coverage report
+        run: |
+          npm install --save-dev jest
+          npx jest --coverage
+        continue-on-error: true
+
+      - name: ✅ Post coverage summary
+        uses: davelosert/vitest-coverage-report-action@v1
+        if: always()
+
+  # Optional: Vercel deploy (if integrated manually via token)
+  deploy:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: ▲ Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          prod: true

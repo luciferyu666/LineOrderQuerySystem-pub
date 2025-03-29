@@ -1,0 +1,36 @@
+{
+  "size": {
+    "width": 2500,
+    "height": 843
+  },
+  "selected": true,
+  "name": "Default Rich Menu",
+  "chatBarText": "選單功能",
+  "areas": [
+    {
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1250,
+        "height": 843
+      },
+      "action": {
+        "type": "message",
+        "text": "查詢訂單"
+      }
+    },
+    {
+      "bounds": {
+        "x": 1250,
+        "y": 0,
+        "width": 1250,
+        "height": 843
+      },
+      "action": {
+        "type": "uri",
+        "label": "聯絡客服",
+        "uri": "https://yourshopify-store.com/pages/contact-us"
+      }
+    }
+  ]
+}

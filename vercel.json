@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
+    },
+    {
+      "src": "/",
+      "dest": "/api/healthcheck.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "LINE_CHANNEL_ACCESS_TOKEN": "@line_channel_access_token",
+    "LINE_CHANNEL_SECRET": "@line_channel_secret",
+    "SHOPIFY_STORE_DOMAIN": "@shopify_store_domain",
+    "SHOPIFY_ACCESS_TOKEN": "@shopify_access_token",
+    "DB_URL": "@db_url",
+    "RICH_MENU_BOUND_ID": "@rich_menu_bound_id",
+    "RICH_MENU_UNBOUND_ID": "@rich_menu_unbound_id"
+  }
+}
