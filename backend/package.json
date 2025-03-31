@@ -1,0 +1,37 @@
+{
+  "name": "line-order-backend",
+  "version": "1.0.0",
+  "description": "LINE 訂單查詢系統 - 後端業務邏輯與資料處理模組",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest",
+    "test:unit": "vitest tests/unit",
+    "test:integration": "vitest tests/integration",
+    "lint": "eslint .",
+    "dev": "vercel dev"
+  },
+  "keywords": [
+    "LINE",
+    "Shopify",
+    "PostgreSQL",
+    "Vercel",
+    "Webhook"
+  ],
+  "author": "你的名稱或團隊",
+  "license": "MIT",
+  "dependencies": {
+    "@line/bot-sdk": "^7.5.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.1.1",
+    "vitest": "^3.0.9"
+  }
+}
