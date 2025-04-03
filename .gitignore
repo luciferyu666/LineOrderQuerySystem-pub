@@ -1,9 +1,8 @@
-# .gitignore
-
 # 環境變數
 .env
 .env.local
 .env.*.local
+.env.test
 
 # Node.js
 node_modules/
@@ -11,7 +10,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Vercel / CI
+# Vercel / CI / Coverage
 .vercel/
 .vscode/
 coverage/
@@ -20,15 +19,28 @@ dist/
 out/
 .DS_Store
 
-# 測試快取
+# 測試快取與暫存
 jest-cache/
 __snapshots__/
+*.test.*
+*.mjs_
+
+# Docker 開發環境（資料庫、掛載 volume 等）
+docker/
+
+# 測試備份資料夾
+tests_/
 
 # Rich Menu 圖片（若自動產生）
 richmenu/*.jpg
 
-# IDE 設定
+# IDE 設定檔
 .idea/
 *.swp
 *.sublime-project
 *.sublime-workspace
+
+# VSCode 建議
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
