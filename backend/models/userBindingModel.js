@@ -3,67 +3,104 @@
 import db from "./db.js";
 
 /**
- * 根據 LINE ID 查詢綁定資料
- * @param {string} lineId - LINE 使用者 ID
- * @returns {Object|null} - 綁定紀錄或 null
+ * 以 line_id 查詢使用者綁定
+ * 預期表結構: user_binding(line_id, phone, email, bound_at)
+ * @param {string} lineId
+ * @returns {object|null} { line_id, phone, email, bound_at }
  */
-export async function findBindingByLineId(lineId) {
-  const res = await db.query("SELECT * FROM user_binding WHERE line_id = $1", [
-    lineId,
-  ]);
+export async function findBindingByLineIdForDual(lineId) {
+  const res = await db.query(
+    `
+    SELECT line_id, phone, email, bound_at
+    FROM user_binding
+    WHERE line_id = $1
+  `,
+    [lineId]
+  );
+
   return res.rows[0] || null;
 }
 
 /**
- * 根據聯絡資訊（Email 或電話）查詢綁定資料
- * @param {string} contact - Email 或電話
- * @returns {Object|null} - 綁定紀錄或 null
+ * 建立或更新 LINE 用戶綁定
+ * - 若 line_id 已存在，就更新 phone, email, bound_at
+ * - 若 line_id 不存在，就插入新紀錄
+ *
+ * @param {string} lineId
+ * @param {string} phone
+ * @param {string} email
  */
-export async function findBindingByContact(contact) {
+export async function createBindingWithPhoneEmail(lineId, phone, email) {
+  // ON CONFLICT (line_id) DO UPDATE
+  await db.query(
+    `
+    INSERT INTO user_binding (line_id, phone, email, bound_at)
+    VALUES ($1, $2, $3, NOW())
+    ON CONFLICT (line_id)
+    DO UPDATE SET
+      phone = EXCLUDED.phone,
+      email = EXCLUDED.email,
+      bound_at = NOW()
+  `,
+    [lineId, phone, email]
+  );
+}
+
+/**
+ * 針對 phone+email 查詢是否已有其他人使用 (若需要可擴充使用)
+ * @param {string} phone
+ * @param {string} email
+ * @returns {object|null} { line_id, phone, email, bound_at }
+ */
+export async function findBindingByPhoneEmail(phone, email) {
   const res = await db.query(
-    "SELECT * FROM user_binding WHERE contact_info = $1",
-    [contact]
+    `
+    SELECT line_id, phone, email, bound_at
+    FROM user_binding
+    WHERE phone = $1 AND email = $2
+  `,
+    [phone, email]
+  );
+
+  return res.rows[0] || null;
+}
+
+/**
+ * 若仍需單一聯絡資訊存取，可保留或刪除以下舊函式 (示範)
+ * ------------------------------------------------------------------
+ */
+
+/**
+ * 單純以 lineId 取得紀錄 (舊版, 但只能用於單一欄位 scenario)
+ * @param {string} lineId
+ * @returns {object|null} { line_id, contact_info, bound_at } or null
+ */
+export async function findBindingByLineId(lineId) {
+  const res = await db.query(
+    `
+    SELECT line_id, contact_info, bound_at
+    FROM user_binding
+    WHERE line_id = $1
+  `,
+    [lineId]
   );
   return res.rows[0] || null;
 }
 
 /**
- * 建立綁定紀錄（LINE ID 與聯絡資訊）
- * 若 LINE ID 已存在，則不執行任何操作（避免重複綁定）
- * @param {string} lineId - LINE 使用者 ID
- * @param {string} contact - 聯絡資訊（Email 或電話）
+ * 若保留舊版 createBinding (單一欄位) 用:
  */
 export async function createBinding(lineId, contact) {
   await db.query(
     `
-    INSERT INTO user_binding (line_id, contact_info)
+    INSERT INTO user_binding(line_id, contact_info)
     VALUES ($1, $2)
-    ON CONFLICT (line_id) DO NOTHING
-    `,
+    ON CONFLICT(line_id) DO NOTHING
+  `,
     [lineId, contact]
   );
 }
 
 /**
- * 更新綁定紀錄（若未來允許更換聯絡資訊）
- * @param {string} lineId - LINE 使用者 ID
- * @param {string} newContact - 新聯絡資訊
+ * 其餘 updateBinding, deleteBinding... 可視需求保留或調整
  */
-export async function updateBinding(lineId, newContact) {
-  await db.query(
-    `
-    UPDATE user_binding
-    SET contact_info = $1, bound_at = NOW()
-    WHERE line_id = $2
-    `,
-    [newContact, lineId]
-  );
-}
-
-/**
- * 刪除綁定紀錄（若支援解除綁定）
- * @param {string} lineId - LINE 使用者 ID
- */
-export async function deleteBinding(lineId) {
-  await db.query("DELETE FROM user_binding WHERE line_id = $1", [lineId]);
-}

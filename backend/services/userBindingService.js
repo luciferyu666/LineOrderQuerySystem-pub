@@ -1,20 +1,25 @@
 // backend/services/userBindingService.js
 
 import {
-  findBindingByLineId,
-  findBindingByContact,
-  createBinding,
+  findBindingByLineIdForDual, // 改寫: 同時回傳 phone 與 email 欄位
+  createBindingWithPhoneEmail,
 } from "../models/userBindingModel.js";
+import { getOrdersByPhoneAndEmail } from "../../lib/shopify/orderFetcher.js";
 
 /**
- * 根據 LINE ID 檢查是否已綁定聯絡資訊
+ * 取得使用者綁定紀錄
  * @param {string} lineId - LINE 使用者 ID
- * @returns {string|null} 綁定的聯絡資訊，或 null
+ * @returns {object|null} { phone, email } 或 null
  */
-export async function getBindingByLineId(lineId) {
+export async function getUserBinding(lineId) {
   try {
-    const result = await findBindingByLineId(lineId);
-    return result ? result.contact_info : null;
+    const record = await findBindingByLineIdForDual(lineId);
+    if (!record) return null;
+    // record 內預期 { line_id, phone, email, bound_at, ... }
+    return {
+      phone: record.phone,
+      email: record.email,
+    };
   } catch (error) {
     console.error("❌ 查詢 LINE 綁定失敗:", error);
     throw error;
@@ -22,33 +27,32 @@ export async function getBindingByLineId(lineId) {
 }
 
 /**
- * 根據 Email/電話 檢查是否已有綁定記錄
- * @param {string} contact - Email 或電話
- * @returns {string|null} 對應的 LINE ID，或 null
- */
-export async function getBindingByContact(contact) {
-  try {
-    const result = await findBindingByContact(contact);
-    return result ? result.line_id : null;
-  } catch (error) {
-    console.error("❌ 查詢聯絡資訊綁定失敗:", error);
-    throw error;
-  }
-}
-
-/**
- * 將 LINE ID 與聯絡資訊建立綁定關係
+ * 以「電話 + Email」雙重綁定使用者身份
  * @param {string} lineId - LINE 使用者 ID
- * @param {string} contact - 使用者輸入的聯絡資訊（Email / 電話）
- * @returns {boolean} 是否綁定成功
+ * @param {string} phone  - 使用者輸入之電話
+ * @param {string} email  - 使用者輸入之 Email
+ * @returns {boolean} 綁定是否成功（找到符合之 Shopify 訂單才成功）
  */
-export async function bindUser(lineId, contact) {
+export async function bindUserWithPhoneEmail(lineId, phone, email) {
   try {
-    await createBinding(lineId, contact);
-    console.log(`✅ 成功綁定 LINE ID: ${lineId} → ${contact}`);
+    // 1. 先檢查 Shopify 是否存在同時符合 phone+email 的訂單
+    const orders = await getOrdersByPhoneAndEmail(phone, email);
+    if (!orders || orders.length === 0) {
+      // 若無符合 => return false
+      console.log(
+        `❌ Shopify 未找到同時符合 phone=${phone} & email=${email} 的訂單`
+      );
+      return false;
+    }
+
+    // 2. 在 DB 建立/更新綁定
+    await createBindingWithPhoneEmail(lineId, phone, email);
+    console.log(
+      `✅ 成功雙綁定 LINE ID: ${lineId} → phone=${phone}, email=${email}`
+    );
     return true;
   } catch (error) {
-    console.error("❌ 建立綁定關係失敗:", error);
+    console.error("❌ 建立(雙重)綁定失敗:", error);
     throw error;
   }
 }
